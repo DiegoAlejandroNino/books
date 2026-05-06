@@ -252,7 +252,7 @@ function Tooltip({ tooltip }) {
 }
 
 // ── Book Card ──
-function BookCard({ book, active, onSelect }) {
+function BookCard({ book, active, onSelect, onDelete }) {
   return (
     <div
       onClick={onSelect}
@@ -264,21 +264,37 @@ function BookCard({ book, active, onSelect }) {
         background: active ? "rgba(193,125,58,0.08)" : "transparent",
         transition: "all 0.2s ease",
         borderBottom: "1px solid rgba(255,255,255,0.04)",
+        display: "flex", alignItems: "center", gap: 10,
       }}
     >
-      <div style={{ fontSize: 14, color: "#d8c8b0", fontWeight: 500, marginBottom: 3, lineHeight: 1.3, fontFamily: "'Playfair Display', serif" }}>
-        {book.title}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, color: "#d8c8b0", fontWeight: 500, marginBottom: 3, lineHeight: 1.3, fontFamily: "'Playfair Display', serif" }}>
+          {book.title}
+        </div>
+        <div style={{ fontSize: 11, color: "#9e8e7a", marginBottom: 6, fontStyle: "italic" }}>
+          {book.author}{book.year ? ` · ${book.year}` : ""}
+        </div>
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <span style={{ background: "#2a2018", borderRadius: 6, padding: "2px 7px", fontSize: 10, fontWeight: 600, color: "#e8a84e" }}>{book.level}</span>
+          {book.source === "real_book"
+            ? <span style={{ background: "rgba(46,125,50,0.15)", borderRadius: 6, padding: "2px 7px", fontSize: 10, color: "#7ec88a" }}>📚 real</span>
+            : <span style={{ background: "#2a2018", borderRadius: 6, padding: "2px 7px", fontSize: 10, color: "#9e8e7a" }}>{book.genre}</span>
+          }
+        </div>
       </div>
-      <div style={{ fontSize: 11, color: "#9e8e7a", marginBottom: 6, fontStyle: "italic" }}>
-        {book.author}{book.year ? ` · ${book.year}` : ""}
-      </div>
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-        <span style={{ background: "#2a2018", borderRadius: 6, padding: "2px 7px", fontSize: 10, fontWeight: 600, color: "#e8a84e" }}>{book.level}</span>
-        {book.source === "real_book"
-          ? <span style={{ background: "rgba(46,125,50,0.15)", borderRadius: 6, padding: "2px 7px", fontSize: 10, color: "#7ec88a" }}>📚 real</span>
-          : <span style={{ background: "#2a2018", borderRadius: 6, padding: "2px 7px", fontSize: 10, color: "#9e8e7a" }}>{book.genre}</span>
-        }
-      </div>
+      {onDelete && (
+        <button
+          onClick={onDelete}
+          style={{
+            background: "transparent", border: "none",
+            color: "#6b5e4a", fontSize: 16, cursor: "pointer",
+            padding: "6px", borderRadius: 8, flexShrink: 0,
+            transition: "color 0.2s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = "#e05050"}
+          onMouseLeave={e => e.currentTarget.style.color = "#6b5e4a"}
+        >🗑</button>
+      )}
     </div>
   );
 }
@@ -305,13 +321,33 @@ function EmptyState() {
   );
 }
 
+// ── localStorage helpers ──
+const LS_BOOKS = "re_books_v1";
+const LS_PREFS = "re_prefs_v1";
+
+function loadBooks() {
+  try { return JSON.parse(localStorage.getItem(LS_BOOKS)) || []; }
+  catch { return []; }
+}
+function saveBooks(books) {
+  try { localStorage.setItem(LS_BOOKS, JSON.stringify(books)); } catch {}
+}
+function loadPrefs() {
+  try { return JSON.parse(localStorage.getItem(LS_PREFS)) || {}; }
+  catch { return {}; }
+}
+function savePrefs(prefs) {
+  try { localStorage.setItem(LS_PREFS, JSON.stringify(prefs)); } catch {}
+}
+
 // ── Main App ──
 export default function App() {
+  const savedPrefs = loadPrefs();
   const [showSplash, setShowSplash] = useState(true);
-  const [books, setBooks] = useState([]);
+  const [books, setBooks] = useState(() => loadBooks());
   const [currentBook, setCurrentBook] = useState(null);
-  const [level, setLevel] = useState("A2");
-  const [genre, setGenre] = useState("adventure");
+  const [level, setLevel] = useState(savedPrefs.level || "A2");
+  const [genre, setGenre] = useState(savedPrefs.genre || "adventure");
   const [mode, setMode] = useState("generate");
   const [bookQuery, setBookQuery] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -325,6 +361,19 @@ export default function App() {
   const [view, setView] = useState("home");                 // "home" | "reading"
   const [bookTransition, setBookTransition] = useState(false);
   const readerRef = useRef(null);
+
+  // Persist books whenever they change
+  useEffect(() => { saveBooks(books); }, [books]);
+
+  // Persist level and genre preferences
+  useEffect(() => { savePrefs({ level, genre }); }, [level, genre]);
+
+  // Delete a book from library
+  const deleteBook = useCallback((id, e) => {
+    e.stopPropagation();
+    setBooks(prev => prev.filter(b => b.id !== id));
+    setCurrentBook(cur => (cur?.id === id ? null : cur));
+  }, []);
 
   const wordCount = currentBook?.paragraphs?.join(" ").split(/\s+/).length ?? 0;
   const readMin = Math.ceil(wordCount / 150);
@@ -367,7 +416,11 @@ Respond ONLY with raw JSON, no markdown:
       const data = await res.json();
       const raw = data.content[0].text.trim().replace(/```json|```/g, "").trim();
       const book = { ...JSON.parse(raw), id: Date.now() };
-      setBooks(prev => [book, ...prev]);
+      setBooks(prev => {
+        const updated = [book, ...prev];
+        saveBooks(updated);
+        return updated;
+      });
       setTimeout(() => openBook(book), 400);
       setStatus(`"${book.title}" listo`);
     } catch {
@@ -403,7 +456,11 @@ Respond ONLY with raw JSON, no markdown:
       const data = await res.json();
       const raw = data.content[0].text.trim().replace(/```json|```/g, "").trim();
       const book = { ...JSON.parse(raw), id: Date.now() };
-      setBooks(prev => [book, ...prev]);
+      setBooks(prev => {
+        const updated = [book, ...prev];
+        saveBooks(updated);
+        return updated;
+      });
       setBookQuery("");
       setTimeout(() => openBook(book), 400);
       setStatus(`"${book.title}" adaptado`);
@@ -888,6 +945,7 @@ Respond ONLY with raw JSON, no markdown:
               book={b}
               active={currentBook?.id === b.id}
               onSelect={() => openBook(b)}
+              onDelete={(e) => deleteBook(b.id, e)}
             />
           ))}
         </div>
