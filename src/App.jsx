@@ -1,7 +1,21 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 
-const API = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY;
+const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_API = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`;
+
+async function callGemini(prompt, maxTokens = 1000) {
+  const res = await fetch(GEMINI_API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: maxTokens, temperature: 0.9 },
+    }),
+  });
+  const data = await res.json();
+  return data.candidates[0].content.parts[0].text.trim().replace(/```json|```/g, "").trim();
+}
 
 const LEVEL_INFO = {
   A1: "Principiante absoluto. Oraciones muy simples.",
@@ -408,13 +422,7 @@ Respond ONLY with raw JSON, no markdown:
 {"title":"...","author":"...","level":"${level}","genre":"${genre}","source":"generated","paragraphs":["...","..."]}`;
 
     try {
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: MODEL, max_tokens: 2000, messages: [{ role: "user", content: prompt }] }),
-      });
-      const data = await res.json();
-      const raw = data.content[0].text.trim().replace(/```json|```/g, "").trim();
+      const raw = await callGemini(prompt, 2000);
       const book = { ...JSON.parse(raw), id: Date.now() };
       setBooks(prev => {
         const updated = [book, ...prev];
@@ -448,13 +456,7 @@ Respond ONLY with raw JSON, no markdown:
 {"title":"...","author":"...","year":1950,"level":"${level}","genre":"...","source":"real_book","originalLanguage":"...","synopsis":"...","paragraphs":["...","..."]}`;
 
     try {
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: MODEL, max_tokens: 3500, messages: [{ role: "user", content: prompt }] }),
-      });
-      const data = await res.json();
-      const raw = data.content[0].text.trim().replace(/```json|```/g, "").trim();
+      const raw = await callGemini(prompt, 3500);
       const book = { ...JSON.parse(raw), id: Date.now() };
       setBooks(prev => {
         const updated = [book, ...prev];
@@ -489,13 +491,7 @@ Respond ONLY with raw JSON, no markdown:
       : `Translate to Spanish. Reply ONLY raw JSON no markdown:\n{"translation":"...","type":"noun/verb/adjective/adverb/etc"}\nWord: "${text}"`;
 
     try {
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: MODEL, max_tokens: 120, messages: [{ role: "user", content: prompt }] }),
-      });
-      const data = await res.json();
-      const raw = data.content[0].text.trim().replace(/```json|```/g, "").trim();
+      const raw = await callGemini(prompt, 120);
       const result = JSON.parse(raw);
       setTooltip(t => ({ ...t, loading: false, translation: result.translation, type: result.type || "" }));
     } catch {
