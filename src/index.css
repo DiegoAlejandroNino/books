@@ -1,0 +1,161 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --ink: #1a1208;
+  --ink-light: #2c2010;
+  --paper: #faf7f0;
+  --paper-warm: #f2ede0;
+  --amber: #c17d3a;
+  --amber-light: #e8a84e;
+  --amber-dim: #4a3c2a;
+  --text-primary: #2c2416;
+  --text-muted: #9e9080;
+  --text-dim: #6b5e4a;
+  --border: rgba(193,125,58,0.2);
+  --sidebar-bg: #12100c;
+  --sidebar-border: #2a2018;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--ink);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--amber-dim); border-radius: 2px; }
+
+/* Selection */
+::selection { background: rgba(193,125,58,0.25); color: var(--text-primary); }
+
+/* ── ANIMATIONS ── */
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes pageFlip {
+  0%   { opacity: 1; transform: rotateY(0deg) scale(1); }
+  50%  { opacity: 0; transform: rotateY(-15deg) scale(0.95); }
+  51%  { opacity: 0; transform: rotateY(15deg) scale(0.95); }
+  100% { opacity: 1; transform: rotateY(0deg) scale(1); }
+}
+
+@keyframes inkDrop {
+  0%   { transform: scale(0) translateY(-20px); opacity: 0; }
+  60%  { transform: scale(1.05) translateY(0); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bookFloat {
+  0%, 100% { transform: translateY(0px) rotate(-1deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(193,125,58,0); }
+  50% { box-shadow: 0 0 20px 4px rgba(193,125,58,0.3); }
+}
+
+.animate-fadeUp    { animation: fadeUp 0.5s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-fadeIn    { animation: fadeIn 0.4s ease both; }
+.animate-scaleIn   { animation: scaleIn 0.4s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-slideUp   { animation: slideUp 0.45s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-slideRight { animation: slideInRight 0.4s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-inkDrop   { animation: inkDrop 0.6s cubic-bezier(.22,.68,0,1.2) both; }
+.animate-tooltipIn { animation: tooltipIn 0.25s cubic-bezier(.22,.68,0,1.2) both; }
+
+/* Stagger helpers */
+.delay-1 { animation-delay: 0.05s; }
+.delay-2 { animation-delay: 0.1s; }
+.delay-3 { animation-delay: 0.15s; }
+.delay-4 { animation-delay: 0.2s; }
+.delay-5 { animation-delay: 0.25s; }
+
+/* Shimmer skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #2a2018 25%, #3d3020 50%, #2a2018 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* Ripple */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+.ripple::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.ripple:active::after { opacity: 1; }
+
+/* Book floating animation */
+.book-float { animation: bookFloat 3s ease-in-out infinite; }
